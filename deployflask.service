@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve deployflask
+After=network.target
+
+[Service]
+User=tiago
+Group=www-data
+WorkingDirectory=/home/tiago/workspace/deployflask
+Environment="PATH=/home/tiago/.virtualenvs/deployflask/bin"
+ExecStart=/home/tiago/.virtualenvs/deployflask/bin/gunicorn --workers 3 --bind unix:app.sock -m 007 app:app
+
+[Install]
+WantedBy=multi-user.target

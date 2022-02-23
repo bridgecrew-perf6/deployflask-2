@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt_br">
+   <head>
+      <meta charset="UTF-8">
+      <title>Deploy aplicação Flask em Ubuntu</title>
+   </head>
+   <body>
+
+   <iframe width="852" height="480" src="https://www.youtube.com/embed/Dp62tMODzMY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+     <h1>Arquivos necessários no projeto</h1>
+
+   <fieldset><legend>{{projeto}}app</legend><pre>server {
+    listen 443 ssl;
+    listen 80;
+    server_name{% for endereco in enderecos%} {{endereco}}{% endfor %};
+
+location / {
+  include proxy_params;
+  proxy_pass http://unix:/home/{{usuario}}/{{projeto}}/app.sock;
+    }
+}</pre></fieldset>
+
+
+
+     <fieldset><legend>{{projeto}}.service</legend><pre>[Unit]
+Description=uWSGI instance to serve {{projeto}}
+After=network.target
+
+[Service]
+User={{usuario}}
+Group=www-data
+WorkingDirectory=/home/{{usuario}}/{{projeto}}
+Environment="PATH=/home/{{usuario}}/{{projeto}}/venv/bin"
+ExecStart=/home/{{usuario}}/{{projeto}}/venv/bin/gunicorn --workers 3 --bind unix:app.sock -m 007 app:app
+
+[Install]
+WantedBy=multi-user.target</pre></fieldset>
+
+<fieldset><legend>app.py</legend><pre>from __init__ import app</pre></fieldset>
+   <p><strong>requirements.txt</strong></p>
+   <pre>pip install gunicorn</pre>
+   <pre>pip freeze > requirements.txt</pre>
+   <p><strong>Atualizar projeto</strong></p>
+   <pre>git add *</pre>
+   <pre>git commit -m "Atualizar projeto"</pre>
+   <pre>git push</pre>
+
+      <h1>Preparar sistema</h1>
+      <p><strong>1. Identificar fuso hor&aacute;rio do Sistema</strong></p>
+      <pre>timedatectl</pre>
+      <p><strong>2. Selecionar fuso hor&aacute;rio<br/></strong></p> 
+      <pre>sudo dpkg-reconfigure tzdata</pre>
+      <pre>sudo /etc/init.d/cron restart</pre>
+      <p><strong>3. Atualizar sistema</strong></p>
+      <pre>sudo apt-get update</pre>
+      <pre>sudo apt-get upgrade</pre>
+      <p><strong>4. Adicionar mem&oacute;ria Swap</strong></p>
+      <pre>sudo dd if=/dev/zero of=/swapfile bs=1024 count=1048576</pre>
+      <pre>sudo mkswap /swapfile</pre>
+      <pre>sudo chmod 0600 /swapfile</pre>
+      <pre>sudo swapon /swapfile</pre>
+      <pre>sudo nano /etc/fstab</pre>
+      <p>Adicionar linhas:</p>
+      <pre>/swapfile	none	swap	sw	0	0
+/swapfile swap swap defaults 0 0</pre>
+      <p>[Ctrl + x] para sair</p>
+      <p>Reinicie o sistema:</p>
+      <pre>sudo reboot</pre>
+      <p>Verifique se a mem&oacute;ria Swap foi implanta</p>
+      <pre>htop</pre>
+      <p><strong>5. Instalar pacotes</strong></p>
+      <pre>sudo apt install python3-pip</pre>
+      <pre>pip3 install flask</pre>
+      <pre>sudo apt install nginx</pre>
+      <pre>sudo apt-get install gunicorn3</pre>
+      <pre>sudo apt-get install virtualenv</pre>
+      <pre>sudo apt-get install python3-venv</pre>
+      <pre>sudo apt-get install python3-dev</pre>
+      <pre>sudo apt-get install git-core</pre>
+      <h1></h1>
+      <h1>Instalar Certificado SSL</h1>
+      <pre>sudo add-apt-repository ppa:certbot/certbot</pre>
+      <pre>sudo apt-get install python-certbot-nginx</pre>
+      <pre>sudo apt-get install letsencryp</pre>
+      <pre>sudo ufw delete allow 'Nginx HTTP'</pre>
+      <pre>sudo ufw allow ssh </pre>
+      <pre>sudo ufw enable </pre>
+      <pre>sudo ufw allow 'Nginx Full' </pre>
+      <pre>sudo ufw delete allow 'Nginx HTTP' </pre>
+      <pre>sudo ufw status</pre>
+      <p></p>
+      <h1>Preparar ambiente</h1>
+      <pre>git clone {{git}} {{projeto}}</pre>
+      <pre>cd {{projeto}}</pre>
+      <pre>python3 -m venv venv</pre>
+      <pre>source venv/bin/activate</pre>
+      <pre>pip install -r requirements.txt</pre>
+      <pre>deactivate<br/><br/></pre>
+      <h1>Configurar Servi&ccedil;o</h1>
+      <p>O arquivo "{{projeto}}.service" deve estar configurado no seu projeto</p>
+
+
+
+      <pre>sudo cp -i {{projeto}}.service /etc/systemd/system/{{projeto}}.service</pre>
+      <pre>sudo systemctl daemon-reload</pre>
+      <p>Inicia e ativa o servi&ccedil;o</p>
+      <pre>sudo systemctl start {{projeto}}</pre>
+      <pre>sudo systemctl enable {{projeto}}</pre>
+      <p>Verificar se a configura&ccedil;&atilde;o est&aacute; correta</p>
+      <pre>sudo systemctl status {{projeto}}</pre>
+      <p>Caso precise fazer manuten&ccedil;&atilde;o no c&oacute;difo ou parar o servi&ccedil;o</p>
+      <pre>sudo systemctl stop {{projeto}}</pre>
+      <p></p>
+      <h1>Configurar nginx</h1>
+      <p>O arquivo "{{projeto}}app" deve estar configurado no seu projeto</p>
+
+      <pre>sudo cp -i {{projeto}}app /etc/nginx/sites-enabled/{{projeto}}app</pre>
+      <pre>sudo service nginx restart</pre>
+      <pre>sudo certbot --nginx {% for endereco in enderecos%} -d {{endereco}}{% endfor %}</pre>
+      <pre>sudo reboot</pre>
+      <p></p>
+      <h1>Atualizar aplica&ccedil;&atilde;o</h1>
+      <pre>cd {{projeto}}</pre>
+      <pre>sudo systemctl stop {{projeto}}</pre>
+      <pre>git pull</pre>
+      <pre>sudo systemctl start {{projeto}}</pre>
+      <pre>sudo systemctl enable {{projeto}}</pre>
+      <pre>sudo systemctl status {{projeto}}</pre>
+      <p></p>
+      <h1>Atualizar aplica&ccedil;&atilde;o (1 comando)</h1>
+      <pre>cd {{projeto}} && sudo systemctl stop {{projeto}} && sleep 1 && git pull && sudo systemctl start {{projeto}} && sudo systemctl enable {{projeto}} && sleep 5 && sudo systemctl status {{projeto}}</pre>
+   </body>
+</html>
